@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WDTube – análise de canal do YouTube</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="logo"><i></i>WDTube</div>
+  <nav role="tablist" aria-label="Áreas">
+    <button role="tab" id="t1" aria-selected="true" aria-controls="p1">Canal</button>
+    <button role="tab" id="t2" aria-selected="false" aria-controls="p2">Thumbnails</button>
+    <button role="tab" id="t3" aria-selected="false" aria-controls="p3">Conexões<i class="dot" id="dot"></i></button>
+  </nav>
+</header>
+
+<section class="panel" id="p1" role="tabpanel" aria-labelledby="t1">
+  <div class="hero">
+    <h1>Descubra o que travar o crescimento do seu canal</h1>
+    <p>Digite o @ do canal. Você recebe uma nota, o que melhorar nos títulos e uma lista de ações para fazer primeiro.</p>
+    <div class="search">
+      <label class="field"><span>@</span><input id="handle" placeholder="seucanal" autocomplete="off" aria-label="@ do canal no YouTube"></label>
+      <button class="btn" id="go">Analisar canal</button>
+    </div>
+    <div class="hint" id="err" role="alert"></div>
+  </div>
+  <div id="result" hidden></div>
+</section>
+
+<section class="panel" id="p2" role="tabpanel" aria-labelledby="t2" hidden>
+  <div class="hero">
+    <h1>Ensine ao WDTube o estilo das suas thumbnails</h1>
+    <p>Envie de 3 a 6 thumbnails que representam o canal. O WDTube identifica cores e contraste e monta uma prévia no mesmo estilo.</p>
+  </div>
+  <label class="drop"><input type="file" id="files" accept="image/*" multiple>Escolher thumbnails do canal (imagens)</label>
+  <div class="refs" id="refs"></div>
+  <div id="studio" hidden>
+    <div class="grid2">
+      <div>
+        <h3>Estilo aprendido</h3>
+        <div class="swatches" id="sw"></div>
+        <p id="profile"></p>
+        <h3 class="mt-22">Nova thumbnail</h3>
+        <div class="search mt-10">
+          <label class="field"><input id="ttl" value="Eu testei por 30 dias" maxlength="32" aria-label="Texto da thumbnail"></label>
+          <button class="btn" id="mk">Gerar prévia</button>
+        </div>
+      </div>
+      <div><canvas id="cv" width="640" height="360" aria-label="Prévia da thumbnail"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<section class="panel" id="p3" role="tabpanel" aria-labelledby="t3" hidden>
+  <div class="hero">
+    <h1>Conecte suas chaves de API</h1>
+    <p>A chave do YouTube permite ler os vídeos reais do canal. A chave de IA gera o feedback e as thumbnails.</p>
+  </div>
+  <div class="card">
+    <div class="ch"><h3>YouTube Data API v3</h3><span class="st" id="st-yt">Não conectada</span></div>
+    <label class="lbl" for="k-yt">Chave de API</label>
+    <div class="keyrow"><input id="k-yt" type="password" autocomplete="off" spellcheck="false" placeholder="AIza…"><button class="btn ghost" type="button" data-eye="k-yt">Mostrar</button></div>
+    <label class="chk"><input type="checkbox" id="rem-yt"> Lembrar neste navegador</label>
+    <div class="acts"><button class="btn" id="sv-yt">Salvar chave</button><button class="btn ghost" id="ts-yt">Testar conexão</button><button class="btn ghost" id="rm-yt">Remover</button></div>
+    <p class="msg" id="m-yt" role="status"></p>
+    <details class="how"><summary>Como criar a chave</summary><ol>
+      <li>Acesse <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">console.cloud.google.com</a> e crie um projeto.</li>
+      <li>Em “APIs e serviços”, ative a YouTube Data API v3.</li>
+      <li>Em “Credenciais”, escolha “Criar credenciais” e depois “Chave de API”.</li>
+      <li>Restrinja a chave à YouTube Data API v3 e ao endereço do seu site.</li>
+    </ol></details>
+  </div>
+  <div class="card">
+    <div class="ch"><h3>Modelo de IA</h3><span class="st" id="st-ai">Não conectada</span></div>
+    <label class="lbl" for="prov">Provedor</label>
+    <select id="prov"><option value="anthropic">Anthropic (Claude)</option><option value="openai">OpenAI</option><option value="gemini">Google (Gemini)</option></select>
+    <label class="lbl" for="k-ai">Chave de API</label>
+    <div class="keyrow"><input id="k-ai" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…"><button class="btn ghost" type="button" data-eye="k-ai">Mostrar</button></div>
+    <div class="acts mt-14"><button class="btn" id="sv-ai">Guardar na sessão</button><button class="btn ghost" id="rm-ai">Remover</button></div>
+    <p class="msg" id="m-ai" role="status">A chave de IA não é salva no navegador. Em produção, ela fica só no servidor.</p>
+  </div>
+  <p class="safe">Qualquer visitante da página pode copiar uma chave colocada nela. Por isso, restrinja a chave do YouTube ao seu site e nunca deixe chaves de IA no navegador.</p>
+</section>
+
+<p class="note">Protótipo de interface. Os resultados do canal são exemplos simulados a partir do @ digitado. A análise real exige conectar a API do YouTube e um modelo de IA em um servidor. As cores das thumbnails são calculadas de verdade, no seu navegador.</p>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const tabs=[$('#t1'),$('#t2'),$('#t3')];
+function go(i){tabs.forEach((x,j)=>{x.setAttribute('aria-selected',i===j);$('#'+x.getAttribute('aria-controls')).hidden=i!==j})}
+tabs.forEach((t,i)=>t.onclick=()=>go(i));
+
+function seed(s){let h=7;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;return()=>{h=(h*1664525+1013904223)>>>0;return h/4294967296}}
+const col=v=>v>=75?'var(--good)':v>=55?'var(--warn)':'var(--bad)';
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function vids(r){
+  const T=['Meu canal mudou tudo em 2026','Como crescer no YouTube: 7 erros que cometi nos primeiros 6 meses','vlog 14','Testei 5 microfones baratos e um deles me surpreendeu','ROTINA DE ESTUDOS!!!','Vale a pena comprar? Review honesto depois de 30 dias','Respondendo comentários','Passei 7 dias sem celular e isso aconteceu'];
+  const D=['Oi pessoal, vídeo novo!','Neste vídeo eu mostro como organizei minha rotina e o que mudou nos resultados. Se curtiu, deixe seu comentário.','Neste vídeo eu testei, comparei e conto o que funcionou de verdade.\n\n00:00 Introdução\n02:10 O teste\n08:45 Resultado\n\nMeu equipamento: link na descrição\nInstagram: @seucanal'];
+  const G=['youtube','crescer no youtube','dicas','iniciantes','produtividade','review','tutorial','como fazer','2026','vlog','rotina','estudos','tecnologia','teste'];
+  const cl=v=>Math.max(15,Math.min(98,Math.round(v)));
+  return T.map(t=>[r(),t]).sort((a,b)=>a[0]-b[0]).slice(0,6).map(([,t])=>{
+    const d=D[Math.floor(r()*3)],tags=G.map(g=>[r(),g]).sort((a,b)=>a[0]-b[0]).slice(0,Math.floor(r()*13)).map(x=>x[1]);
+    const tl=t.length,ts=cl(40+(tl>=35&&tl<=65?30:tl<20?0:12)+(/[0-9?]/.test(t)?18:0)-(t===t.toUpperCase()?18:0)+(/!!/.test(t)?-8:0));
+    const ds=cl(25+Math.min(d.length,260)/4+(/\d\d:\d\d/.test(d)?12:0)+(/link|@/.test(d)?6:0));
+    const gs=cl(20+tags.length*7);
+    const tips=[];
+    if(ts<70)tips.push('Título: use entre 35 e 65 caracteres, com número ou pergunta e a palavra-chave no início.');
+    if(ds<70)tips.push('Texto: escreva mais de 200 caracteres, com capítulos e links nas primeiras linhas.');
+    if(gs<70)tips.push('Tags: use de 8 a 12, misturando termos amplos e específicos.');
+    return{t,d,tags,ts,ds,gs,score:Math.round(ts*.4+ds*.3+gs*.3),tips};
+  });
+}
+function analyze(){
+  const h=$('#handle').value.trim().replace(/^@/,'');
+  if(!/^[\w.\-]{3,30}$/.test(h)){$('#err').textContent='Digite um @ válido, com 3 a 30 caracteres, sem espaços.';return}
+  $('#err').textContent='';
+  const r=seed(h.toLowerCase()),n=()=>Math.round(45+r()*45);
+  const m=[['Títulos',n()],['Thumbnails',n()],['Consistência',n()],['Descrição e busca',n()]];
+  const total=Math.round(m.reduce((a,b)=>a+b[1],0)/m.length);
+  const pairs=[
+    ['Vlog da semana','Passei 7 dias sem celular e isso aconteceu','Curiosidade e resultado claro'],
+    ['Dicas para iniciantes','5 erros de iniciante que custam meses de progresso','Número e dor específica'],
+    ['Review completo','Vale a pena em 2026? Testei e conto tudo','Pergunta que o público já faz']];
+  const tasks=[
+    ['Reescrever os 5 títulos com menos views','alta'],
+    ['Colocar a palavra-chave principal nos primeiros 60 caracteres','alta'],
+    ['Padronizar rosto, cor e fonte nas thumbnails','média'],
+    ['Adicionar capítulos e links nas descrições','média'],
+    ['Fixar um comentário com pergunta no vídeo mais recente','baixa']];
+  const pc={alta:'var(--bad)',média:'var(--warn)',baixa:'var(--good)'};
+  $('#result').hidden=false;
+  $('#result').innerHTML=`
+  <div class="demo">Dados de exemplo. Para ver os vídeos reais do canal, conecte sua chave em <button class="lnk" onclick="go(2)">Conexões</button>.</div><div class="top"><div class="score" style="--p:${total}"><b>${total}</b></div>
+    <div><h2>@${esc(h)}</h2><p>${total>=75?'Canal bem encaminhado. Os ajustes abaixo refinam o que já funciona.':total>=55?'Boa base, com ganhos rápidos em títulos e thumbnails.':'Há bastante espaço para crescer. Comece pelas ações de prioridade alta.'}</p></div></div>
+  <div class="sec"><h3>Pontuação por área</h3>${m.map(([a,v])=>`<div class="bar"><span>${a}</span><div class="track"><i style="width:${v}%;background:${col(v)}"></i></div><b>${v}</b></div>`).join('')}</div>
+  <div class="sec"><h3>Vídeos do canal</h3>${vids(r).map(v=>`<details class="vid"><summary><span class="vt">${esc(v.t)}</span><span class="pill" style="color:${col(v.score)}">${v.score}</span></summary><div class="vb"><h4>Pontuação</h4>${[['Título',v.ts],['Texto',v.ds],['Tags',v.gs]].map(([a,b])=>`<div class="bar"><span>${a}</span><div class="track"><i style="width:${b}%;background:${col(b)}"></i></div><b>${b}</b></div>`).join('')}<h4>Texto da descrição</h4><p>${esc(v.d)}</p><h4>Tags</h4>${v.tags.length?`<div class="chips">${v.tags.map(g=>`<span>${esc(g)}</span>`).join('')}</div>`:'<p>Nenhuma tag adicionada.</p>'}${v.tips.length?`<h4>Como melhorar</h4>${v.tips.map(x=>`<p class="tip">${x}</p>`).join('')}`:'<h4>Como melhorar</h4><p class="tip">Este vídeo está bem otimizado.</p>'}</div></details>`).join('')}</div>
+  <div class="sec"><h3>Sugestões de título</h3>${pairs.map(p=>`<div class="swap"><span class="old">${p[0]}</span><span class="new">${p[1]}</span><small>${p[2]}</small></div>`).join('')}</div>
+  <div class="sec tasks"><h3>O que fazer primeiro</h3>${tasks.map(t=>`<label><input type="checkbox"><span>${t[0]}<span class="tag" style="color:${pc[t[1]]}">${t[1]}</span></span></label>`).join('')}</div>`;
+  $('#result').scrollIntoView({behavior:'smooth'});
+}
+$('#go').onclick=analyze;
+$('#handle').addEventListener('keydown',e=>{if(e.key==='Enter')analyze()});
+
+/* Thumbnails */
+let imgs=[],pal=['#3D5AFE','#17202E','#FFFFFF'],bright=.5;
+$('#files').onchange=async e=>{
+  const fs=[...e.target.files].slice(0,6);if(!fs.length)return;
+  imgs=await Promise.all(fs.map(f=>new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.src=URL.createObjectURL(f)})));
+  $('#refs').innerHTML='';imgs.forEach(i=>{const c=i.cloneNode();$('#refs').appendChild(c)});
+  learn();$('#studio').hidden=false;draw();
+};
+function learn(){
+  const b={};let br=0,cnt=0,sat=0;
+  const c=document.createElement('canvas');c.width=c.height=40;const x=c.getContext('2d',{willReadFrequently:true});
+  imgs.forEach(i=>{x.drawImage(i,0,0,40,40);const d=x.getImageData(0,0,40,40).data;
+    for(let k=0;k<d.length;k+=4){const R=d[k],G=d[k+1],B=d[k+2],mx=Math.max(R,G,B),mn=Math.min(R,G,B);
+      br+=(R+G+B)/765;sat+=mx?(mx-mn)/mx:0;cnt++;
+      const key=[R,G,B].map(v=>Math.min(7,v>>5)).join();(b[key]=b[key]||{n:0,s:[0,0,0]}).n++;[R,G,B].forEach((v,j)=>b[key].s[j]+=v)}});
+  const top=Object.values(b).sort((a,b)=>b.n-a.n);
+  const out=[];
+  for(const t of top){const rgb=t.s.map(v=>Math.round(v/t.n));
+    if(out.every(o=>Math.hypot(o[0]-rgb[0],o[1]-rgb[1],o[2]-rgb[2])>70))out.push(rgb);
+    if(out.length===5)break}
+  pal=out.map(r=>'#'+r.map(v=>v.toString(16).padStart(2,'0')).join(''));
+  bright=br/cnt;const s=sat/cnt;
+  $('#sw').innerHTML=pal.map(p=>`<i style="background:${p}" title="${p}"></i>`).join('');
+  $('#profile').textContent=`Visual ${bright<.4?'escuro':bright>.6?'claro':'equilibrado'}, com cores ${s>.45?'saturadas e vibrantes':s>.2?'moderadas':'sóbrias'}. O WDTube vai usar essas cores e esse nível de luz nas novas prévias.`;
+}
+function draw(){
+  const c=$('#cv'),x=c.getContext('2d'),W=640,H=360;
+  if(!imgs.length)return;
+  const i=imgs[0],k=Math.max(W/i.width,H/i.height);
+  x.filter='blur(6px)';x.drawImage(i,(W-i.width*k)/2,(H-i.height*k)/2,i.width*k,i.height*k);x.filter='none';
+  const g=x.createLinearGradient(0,0,W,0);g.addColorStop(0,pal[0]+'E6');g.addColorStop(.75,pal[0]+'33');g.addColorStop(1,'#00000000');
+  x.fillStyle=g;x.fillRect(0,0,W,H);
+  const lum=h=>{const n=parseInt(h.slice(1),16);return((n>>16)*.3+((n>>8)&255)*.59+(n&255)*.11)};
+  const txt=lum(pal[0])>140?'#111111':'#FFFFFF';
+  const words=($('#ttl').value.trim()||'Seu título').toUpperCase().split(' ');
+  const lines=[];let cur='';words.forEach(w=>{if((cur+' '+w).trim().length>11){lines.push(cur);cur=w}else cur=(cur+' '+w).trim()});lines.push(cur);
+  x.font='700 64px "Bricolage Grotesque",Figtree,Impact,sans-serif';x.textBaseline='top';x.lineJoin='round';x.lineWidth=10;
+  lines.slice(0,4).forEach((l,j)=>{const y=40+j*72;x.strokeStyle=txt==='#FFFFFF'?'#000000AA':'#FFFFFFAA';x.strokeText(l,36,y);x.fillStyle=j===lines.length-1&&pal[1]?pal[1]:txt;
+    x.fillStyle=txt;x.fillText(l,36,y)});
+  x.fillStyle=pal[2]||'#fff';x.fillRect(36,H-34,120,8);
+}
+$('#mk').onclick=draw;
+
+/* Conexões */
+const mem={yt:'',ai:''};
+const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+const pre={anthropic:'sk-ant-',openai:'sk-',gemini:'AIza'};
+const rules={
+  yt:k=>/^AIza[0-9A-Za-z_-]{35}$/.test(k)?'':'A chave do YouTube começa com AIza e tem 39 caracteres. Confira se copiou inteira.',
+  ai:k=>{const p=pre[$('#prov').value];return k.startsWith(p)&&k.length>20?'':'Essa chave não parece ser do provedor escolhido. Ela deve começar com '+p+'.'}};
+function status(id,cls,txt,msg){
+  const s=$('#st-'+id);s.className='st '+cls;s.textContent=txt;$('#m-'+id).textContent=msg;
+  const c=$('#st-yt').className+' '+$('#st-ai').className;
+  $('#dot').className='dot '+(/err/.test(c)?'err':/ok/.test(c)?'ok':/warn/.test(c)?'warn':'');
+}
+function save(id){
+  const k=$('#k-'+id).value.trim(),e=rules[id](k);
+  if(e){status(id,'err','Chave inválida',e);return false}
+  mem[id]=k;
+  if(id==='ai'){status(id,'ok','Guardada na sessão','Guardada só nesta sessão. Em produção, a chave de IA fica no servidor.');return true}
+  if($('#rem-yt').checked){const ok=LS.set('lupa_yt',k);status(id,'warn','Chave salva',ok?'Salva neste navegador. Use “Testar conexão” para confirmar.':'O navegador bloqueou o armazenamento. A chave vale só nesta sessão.')}
+  else{LS.del('lupa_yt');status(id,'warn','Chave salva','Guardada só nesta sessão. Use “Testar conexão” para confirmar.')}
+  return true;
+}
+function rem(id){mem[id]='';$('#k-'+id).value='';if(id==='yt')LS.del('lupa_yt');status(id,'','Não conectada','Chave removida.')}
+async function testYT(){
+  if(!save('yt'))return;
+  status('yt','warn','Testando…','Consultando a API do YouTube…');
+  try{
+    const r=await fetch('https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=@YouTube&key='+encodeURIComponent(mem.yt));
+    const j=await r.json();
+    if(r.ok){status('yt','ok','Conectada','Conexão confirmada. A API respondeu normalmente.');return}
+    const er=j.error||{},why=(er.errors&&er.errors[0]&&er.errors[0].reason)||(er.details&&er.details[0]&&er.details[0].reason)||'';
+    const t={keyInvalid:'O Google recusou a chave. Confira se copiou inteira.',API_KEY_INVALID:'O Google recusou a chave. Confira se copiou inteira.',accessNotConfigured:'A YouTube Data API v3 não está ativada neste projeto do Google Cloud.',SERVICE_DISABLED:'A YouTube Data API v3 não está ativada neste projeto do Google Cloud.',quotaExceeded:'A cota diária da chave acabou. Tente amanhã.',ipRefererBlocked:'A chave tem restrição de site e este endereço não está liberado.',API_KEY_HTTP_REFERRER_BLOCKED:'A chave tem restrição de site e este endereço não está liberado.'};
+    status('yt','err','Erro',t[why]||er.message||'A API recusou a chave.');
+  }catch(e){status('yt','warn','Chave salva','Não foi possível testar aqui: este ambiente de visualização bloqueia conexões com outros sites. Hospede a página no seu domínio e teste de novo.')}
+}
+document.querySelectorAll('[data-eye]').forEach(b=>b.onclick=()=>{const i=$('#'+b.dataset.eye),s=i.type==='password';i.type=s?'text':'password';b.textContent=s?'Ocultar':'Mostrar'});
+$('#sv-yt').onclick=()=>save('yt');$('#ts-yt').onclick=testYT;$('#rm-yt').onclick=()=>rem('yt');
+$('#sv-ai').onclick=()=>save('ai');$('#rm-ai').onclick=()=>rem('ai');
+$('#prov').onchange=()=>{$('#k-ai').placeholder=pre[$('#prov').value]+'…'};
+(function(){const k=LS.get('lupa_yt');if(k){$('#k-yt').value=k;$('#rem-yt').checked=true;mem.yt=k;status('yt','warn','Chave salva','Chave recuperada deste navegador. Use “Testar conexão” para confirmar.')}})();
+</script>
+</body>
+</html>
